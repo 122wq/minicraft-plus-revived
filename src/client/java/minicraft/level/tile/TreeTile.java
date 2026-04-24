@@ -109,6 +109,7 @@ public class TreeTile extends Tile {
 
 	public boolean tick(Level level, int xt, int yt) {
 		int damage = level.getData(xt, yt);
+		//reduce health regeneration
 		if (damage > 0) {
 			level.setData(xt, yt, damage - 1);
 			return true;

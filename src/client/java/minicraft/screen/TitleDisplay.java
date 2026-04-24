@@ -44,6 +44,8 @@ public class TitleDisplay extends Display {
 						).createMenu()));
 					else Game.setDisplay(new WorldGenDisplay());
 				}),
+				//add multiplayer selection
+				new SelectEntry("minicraft.displays.title.multiplyer", () -> Game.setDisplay(new MultiplayerDisplay())),
 				new SelectEntry("minicraft.display.options_display", () -> Game.setDisplay(new OptionsMainMenuDisplay())),
 				new SelectEntry("minicraft.displays.skin", () -> Game.setDisplay(new SkinDisplay())),
 				new SelectEntry("minicraft.displays.achievements", () -> Game.setDisplay(new AchievementsDisplay())),

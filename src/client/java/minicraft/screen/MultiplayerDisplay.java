@@ -16,7 +16,11 @@ import minicraft.gfx.Font;
 import minicraft.gfx.FontStyle;
 import minicraft.gfx.Screen;
 import minicraft.util.Logging;
-//import minicraft.network.Analytics;
+import minicraft.network.ClientConnection;
+
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * @deprecated As multiplayer mode removed. This class is not localized.
@@ -29,7 +33,7 @@ public class MultiplayerDisplay extends Display {
 
 	public static String savedIP = "";
 	public static String savedUUID = "";
-	public static String savedUsername = "";
+	public static String savedUsername = "test";
 	private String email = "";
 
 	private String waitingMessage = "waiting...";
@@ -37,11 +41,15 @@ public class MultiplayerDisplay extends Display {
 	private String errorMessage = "";
 
 	private String typing = email;
+	private String textBox = "";
 	private boolean inputIsValid = false;
 
 	private boolean online = false;
 	private boolean typingEmail = true;
-
+	
+	// Client-Server messaging
+	private ClientConnection clientConnection;
+	
 	private Ellipsis ellipsis = new SequentialEllipsis();
 
 	private enum State {
@@ -108,7 +116,7 @@ public class MultiplayerDisplay extends Display {
 			@Override
 			public void cancelled() {
 				System.err.println("Website ping cancelled.");
-				if (savedUsername.length() == 0 || savedUUID.length() == 0) {
+				if (!savedUsername.equals("test") || savedUsername.length() == 0 /*|| savedUUID.length() == 0*/) {
 					// couldn't validate username, and can't enter offline mode b/c there is no username
 					setError("could not connect to playminicraft account server, but no login data saved; cannot enter offline mode.", false);
 					return;
@@ -124,6 +132,33 @@ public class MultiplayerDisplay extends Display {
 
 	@Override
 	public void tick(InputHandler input) {
+		if (curState.toString().equals("ENTERIP") && !online)		
+		{
+			//if it is in the enter ip state create the textbox
+			typing = input.addKeyTyped(typing, null);
+			if (input.inputPressed("exit"))
+			{
+				if (input.inputPressed("SHIFT-ESCAPE"))
+				{
+					savedIP = "";
+					savedUUID = "";
+					savedUsername = "";
+					System.out.println("Logout Sucessful");	
+				}	
+			
+				Game.exitDisplay();	
+			}
+			
+			if (input.inputPressed("enter"))
+			{
+
+			}
+		}
+
+		if (curState.toString().equals("ERROR") && input.inputPressed("exit"))
+		{
+			Game.exitDisplay();
+		}
 	}
 
 	private void fetchName(String uuid) {

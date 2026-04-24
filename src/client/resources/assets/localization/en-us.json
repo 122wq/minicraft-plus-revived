@@ -380,6 +380,7 @@
   "minicraft.displays.title.play": "Play",
   "minicraft.displays.title.play.load_world": "Load World",
   "minicraft.displays.title.play.new_world": "New World",
+  "minicraft.displays.title.multiplyer": "Multiplayer",
   "minicraft.displays.title.quit": "Quit",
   "minicraft.displays.title.select_to_download": "--Select here to Download--",
   "minicraft.displays.tutorial_display_handler.display.element_examine_help": "Press %s to examine the details of the current tutorial.",
