@@ -2,6 +2,7 @@ package minicraft.core;
 
 import minicraft.network.MinicraftProtocol;
 import minicraft.network.NetworkPacket;
+import minicraft.network.WorldCreate;
 
 import java.io.EOFException;
 import java.io.ObjectInputStream;
@@ -25,7 +26,9 @@ public class Server {
 
     public static final int LISTENING_PORT = MinicraftProtocol.PORT;
     private static long serverTick = 0L;
-    
+    private static final ArrayList<ConnectionHandler> handlers = new ArrayList<>();
+    private static WorldCreate serverWorld = new WorldCreate((long)(1000 * Math.random()), 128);
+
 
 
     public static void main(String[] args) 
@@ -66,7 +69,6 @@ public class Server {
      */
     private static class ConnectionHandler extends Thread 
     {
-        private static ArrayList<ConnectionHandler> handlers;
         Socket client;
         ObjectOutputStream oos;
         ObjectInputStream ois;
@@ -74,12 +76,6 @@ public class Server {
         ConnectionHandler(Socket socket) 
         {
             client = socket;
-            if (handlers == null)
-            {
-                handlers = new ArrayList<ConnectionHandler>();
-            }
-            handlers.add(this);
-            clientNum = handlers.size() - 1;
         }
         public void run() 
         {
@@ -91,6 +87,12 @@ public class Server {
                 NetworkPacket packetFromClient;
                 ois = new ObjectInputStream(client.getInputStream());
                 oos = new ObjectOutputStream(client.getOutputStream());
+                synchronized (handlers) {
+                    handlers.add(this);
+                    clientNum = handlers.size() - 1;
+                }
+                handlers.get(handlers.size() - 1).oos.writeObject(new NetworkPacket(MinicraftProtocol.InputType.WORLD_CREATE, serverWorld, MAX_PRIORITY, serverTick, LISTENING_PORT));
+
                 while(true)
                 { 
                     Object incoming = ois.readObject();
@@ -101,14 +103,19 @@ public class Server {
                     }
 
                     System.out.println("[" + packetFromClient.getType() + "] " + packetFromClient.getPayload());
-                    for (int i = 0; i < handlers.size(); i++)
+                    ArrayList<ConnectionHandler> currentHandlers;
+                    synchronized (handlers) {
+                        currentHandlers = new ArrayList<ConnectionHandler>(handlers);
+                    }
+                    for (int i = 0; i < currentHandlers.size(); i++)
                     {
-                        if (handlers.get(i) == this) {
+                        ConnectionHandler handler = currentHandlers.get(i);
+                        if (handler == this || handler == null || handler.oos == null) {
                             continue;
                         }
 
-                        handlers.get(i).oos.writeObject(packetFromClient);
-                        handlers.get(i).oos.flush();
+                        handler.oos.writeObject(packetFromClient);
+                        handler.oos.flush();
                     }
                         
                 }
@@ -132,16 +139,23 @@ public class Server {
                     client.close();
                 } catch (Exception e) {
                 }
-                handlers.remove(this);
+                synchronized (handlers) {
+                    handlers.remove(this);
+                }
 
                 String disconnectMessage = "Client " + clientNum + " disconnected.";
-                for (int i = 0; i < handlers.size(); i++)
+                ArrayList<ConnectionHandler> currentHandlers;
+                synchronized (handlers) {
+                    currentHandlers = new ArrayList<ConnectionHandler>(handlers);
+                }
+                for (int i = 0; i < currentHandlers.size(); i++)
                 {
                     try {
-                        if (handlers.get(i).oos != null)
+                        ConnectionHandler handler = currentHandlers.get(i);
+                        if (handler != null && handler.oos != null)
                         {
-                            handlers.get(i).oos.writeObject(new NetworkPacket(MinicraftProtocol.InputType.DISCONNECT, disconnectMessage, clientNum, ++serverTick, 0));
-                            handlers.get(i).oos.flush();
+                            handler.oos.writeObject(new NetworkPacket(MinicraftProtocol.InputType.DISCONNECT, disconnectMessage, clientNum, ++serverTick, 0));
+                            handler.oos.flush();
                         }
                     } catch (Exception e) {
                     }

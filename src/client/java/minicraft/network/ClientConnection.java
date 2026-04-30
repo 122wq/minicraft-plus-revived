@@ -6,12 +6,17 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import minicraft.core.Updater;
+import minicraft.core.World;
+import minicraft.network.MinicraftProtocol;
+import minicraft.network.MinicraftProtocol.InputType;
 
 public class ClientConnection {
 	private InetAddress host;
     private Socket socket;
     private ObjectOutputStream oos;
     private ObjectInputStream ois;
+    private static volatile WorldCreate latestWorldCreate;
+    private static InputType currState;
 	/*
 	 * Modify this example so that it opens a dialogue window using java swing, 
 	 * takes in a user message and sends it
@@ -38,8 +43,9 @@ public class ClientConnection {
             oos.flush();
 
             //create the input and output threads
-            InputThread i = new InputThread();
             OutputThread o = new OutputThread();
+            InputThread i = new InputThread();
+            
             i.start();
             o.start();
             // wait for the send to complete before closing
@@ -50,11 +56,24 @@ public class ClientConnection {
         
         
     }
-    private class InputThread extends Thread
+
+    public static WorldCreate getLatestWorldCreate() {
+        return latestWorldCreate;
+    }
+
+    public static boolean isWorldDataReady() {
+        return latestWorldCreate != null;
+    }
+
+    public static void resetWorldData() {
+        latestWorldCreate = null;
+    }
+
+    private class OutputThread extends Thread
     {
         String message = "hello";
         boolean pressed;
-        public InputThread()
+        public OutputThread()
         {
         }
         public synchronized void run()
@@ -80,7 +99,7 @@ public class ClientConnection {
         }
     }
 
-    private class OutputThread extends Thread
+    private class InputThread extends Thread
     {
         public void run()
         {
@@ -90,8 +109,16 @@ public class ClientConnection {
                     Object incoming = ois.readObject();
                     if (incoming instanceof NetworkPacket) {
                         NetworkPacket packet = (NetworkPacket) incoming;
-                        System.out.println("[" + packet.getType() + "] " + packet.getPayload());
-                    } else {
+                        if (packet.getType() == MinicraftProtocol.InputType.WORLD_CREATE && packet.getPayload() instanceof WorldCreate) {
+                            WorldCreate worldCreate = (WorldCreate) packet.getPayload();
+                            latestWorldCreate = worldCreate;
+                            System.out.println("[" + packet.getType() + "] seed=" + worldCreate.getSeed() + ", size=" + worldCreate.getWorldSize());
+                        } else {
+                            System.out.println("[" + packet.getType() + "] " + packet.getPayload());
+                        }
+                        currState = packet.getType();
+                    } 
+                    else {
                         System.out.println(String.valueOf(incoming));
                     }
                     

@@ -17,9 +17,11 @@ import minicraft.gfx.FontStyle;
 import minicraft.gfx.Screen;
 import minicraft.util.Logging;
 import minicraft.network.ClientConnection;
+import minicraft.screen.LoadingDisplay;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.net.InetAddress;
 
 
 /**
@@ -28,10 +30,10 @@ import java.util.List;
 @Deprecated
 public class MultiplayerDisplay extends Display {
 
-	private static final String domain = "https://playminicraft.com";
+	private static final String domain = "https://playminicraft1.com";
 	private static final String apiDomain = domain + "/api";
 
-	public static String savedIP = "";
+	public static String savedIP = "localhost";
 	public static String savedUUID = "";
 	public static String savedUsername = "test";
 	private String email = "";
@@ -49,6 +51,7 @@ public class MultiplayerDisplay extends Display {
 	
 	// Client-Server messaging
 	private ClientConnection clientConnection;
+	private boolean worldLoadQueued = false;
 	
 	private Ellipsis ellipsis = new SequentialEllipsis();
 
@@ -149,9 +152,19 @@ public class MultiplayerDisplay extends Display {
 				Game.exitDisplay();	
 			}
 			
-			if (input.inputPressed("enter"))
+			if (input.inputPressed("ENTER"))
 			{
-
+				ClientConnection.resetWorldData();
+				worldLoadQueued = false;
+				clientConnection = new ClientConnection();
+			}
+			
+			// Check if world data has arrived from server
+			if (clientConnection != null && ClientConnection.isWorldDataReady() && !worldLoadQueued) {
+				worldLoadQueued = true;
+				System.out.println("World data received, starting game...");
+				WorldSelectDisplay.setWorldName("MultiplayerWorld", false);
+				Game.setDisplay(new LoadingDisplay());
 			}
 		}
 

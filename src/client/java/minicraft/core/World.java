@@ -18,6 +18,7 @@ import minicraft.util.AdvancementElement;
 import minicraft.util.Logging;
 import org.jetbrains.annotations.Nullable;
 import org.tinylog.Logger;
+import minicraft.network.ClientConnection;
 
 import java.util.Random;
 
@@ -129,10 +130,17 @@ public class World extends Game {
 
 		if (WorldSelectDisplay.hasLoadedWorld()) {
 			new Load(WorldSelectDisplay.getWorldName());
-		} else {
+		} 
+		else {
 			worldSize = (Integer) Settings.get("size");
 
 			seed = WorldGenDisplay.getSeed().orElse(new Random().nextLong());
+
+			if (ClientConnection.isWorldDataReady()) {
+				worldSize = ClientConnection.getLatestWorldCreate().getWorldSize();
+				seed = ClientConnection.getLatestWorldCreate().getSeed();
+			}
+
 			random = new Random(seed);
 
 			float loadingInc = 100f / (maxLevelDepth - minLevelDepth + 1); // The .002 is for floating point errors, in case they occur.
